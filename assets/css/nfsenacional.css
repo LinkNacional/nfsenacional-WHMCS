@@ -1,0 +1,39 @@
+/**
+ * NFS-e Nacional - Estilos
+ */
+
+/* Painel NFS-e na pagina de fatura admin */
+.invoice-nfse-nacional .panel {
+    margin-top: 10px;
+}
+
+.invoice-nfse-nacional .panel-title {
+    font-size: 14px;
+}
+
+.invoice-nfse-nacional .btn-sm {
+    margin-right: 5px;
+    margin-bottom: 3px;
+}
+
+/* Cards de estatisticas */
+.nfse-stats .panel-body {
+    font-size: 3em;
+    font-weight: bold;
+    text-align: center;
+}
+
+/* Tabela client area */
+.nfse-nacional-client .table {
+    margin-top: 15px;
+}
+
+.nfse-nacional-client .btn-xs {
+    margin-right: 3px;
+}
+
+/* Badge de status */
+.nfse-status-badge {
+    font-size: 12px;
+    padding: 3px 8px;
+}

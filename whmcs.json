@@ -1,0 +1,24 @@
+{
+    "schema": "1.0",
+    "type": "whmcs-addons",
+    "name": "nfsenacional",
+    "license": "proprietary",
+    "category": "billing",
+    "description": {
+        "name": "NFS-e Nacional",
+        "tagline": "Addon para emissao de NFS-e no padrao nacional (ADN)",
+        "long": "Modulo de integracao com a API da NFS-e Nacional para emissao, consulta, cancelamento e download de documentos fiscais eletronicos de servico."
+    },
+    "logo": {
+        "filename": "logo.png"
+    },
+    "support": {
+        "homepage": "https://gk2.com.br"
+    },
+    "authors": [
+        {
+            "name": "GK2",
+            "homepage": "https://gk2.com.br"
+        }
+    ]
+}

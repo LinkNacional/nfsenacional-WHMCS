@@ -1,0 +1,21 @@
+{
+    "name": "gk2/whmcs-nfsenacional",
+    "description": "WHMCS Addon para NFS-e Nacional (ADN)",
+    "type": "project",
+    "require": {
+        "php": ">=8.1",
+        "guzzlehttp/guzzle": "^7.0",
+        "robrichards/xmlseclibs": "^3.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "GK2\\NfseNacional\\": "src/NfseNacional/"
+        }
+    },
+    "authors": [
+        {
+            "name": "GK2",
+            "email": "webmaster@gk2.com.br"
+        }
+    ]
+}
