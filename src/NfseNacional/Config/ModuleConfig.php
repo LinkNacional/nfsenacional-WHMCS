@@ -109,7 +109,81 @@ class ModuleConfig
 
     public function getCertificadoSenha(): string
     {
-        return $this->get('certificado_senha');
+        $value = $this->get('certificado_senha');
+        return $this->decryptValue($value);
+    }
+
+    /**
+     * Migra a senha do certificado de plaintext para AES-256-CBC.
+     * Idempotente: não faz nada se já estiver criptografada ou vazia.
+     * Deve ser chamada em nfsenacional_output() para migrar instalações existentes.
+     */
+    public function ensureCertificadoSenhaEncrypted(): void
+    {
+        $value = $this->get('certificado_senha');
+        if (empty($value) || str_starts_with($value, self::ENC_PREFIX)) {
+            return;
+        }
+        $this->set('certificado_senha', $this->encryptValue($value));
+    }
+
+    // ─── Criptografia de valores sensíveis (AES-256-CBC) ──────────────
+
+    private const ENC_PREFIX = 'ENC:';
+
+    /**
+     * Lê (ou gera) a chave de criptografia AES-256 do filesystem.
+     * A chave é armazenada em .nfse_enc_key no diretório raiz do addon
+     * (protegido por .htaccess) — separada do banco de dados para que
+     * um dump de BD sozinho não exponha as senhas.
+     */
+    private function getEncryptionKey(): string
+    {
+        $keyFile = dirname(__DIR__, 3) . '/.nfse_enc_key';
+
+        if (file_exists($keyFile)) {
+            $hex = trim((string) file_get_contents($keyFile));
+            if (strlen($hex) === 64 && ctype_xdigit($hex)) {
+                return hex2bin($hex);
+            }
+        }
+
+        // Gera nova chave aleatória de 256 bits
+        $key = random_bytes(32);
+        file_put_contents($keyFile, bin2hex($key));
+        chmod($keyFile, 0600);
+        return $key;
+    }
+
+    /**
+     * Criptografa um valor com AES-256-CBC.
+     * O IV aleatório é prefixado ao ciphertext antes do base64.
+     */
+    private function encryptValue(string $plain): string
+    {
+        $key    = $this->getEncryptionKey();
+        $iv     = random_bytes(16);
+        $cipher = openssl_encrypt($plain, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv);
+        return self::ENC_PREFIX . base64_encode($iv . $cipher);
+    }
+
+    /**
+     * Descriptografa um valor com AES-256-CBC.
+     * Se o valor não tiver o prefixo ENC: retorna o plaintext original
+     * (compatibilidade retroativa com instalações antigas).
+     */
+    private function decryptValue(string $value): string
+    {
+        if (!str_starts_with($value, self::ENC_PREFIX)) {
+            return $value; // plaintext ainda não migrado
+        }
+
+        $raw    = base64_decode(substr($value, strlen(self::ENC_PREFIX)));
+        $iv     = substr($raw, 0, 16);
+        $cipher = substr($raw, 16);
+        $key    = $this->getEncryptionKey();
+        $plain  = openssl_decrypt($cipher, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv);
+        return $plain !== false ? $plain : '';
     }
 
     public function getCnae(): string
@@ -132,6 +206,20 @@ class ModuleConfig
         return $this->get('codigomunicipal', '');
     }
 
+    /**
+     * Retorna a chave secreta única desta instalação para geração de tokens HMAC.
+     * Gerada automaticamente com 32 bytes aleatórios na primeira chamada.
+     */
+    public function getTokenSecret(): string
+    {
+        $secret = $this->get('_token_secret');
+        if (empty($secret)) {
+            $secret = bin2hex(random_bytes(32)); // 64 chars hex
+            $this->set('_token_secret', $secret);
+        }
+        return $secret;
+    }
+
     public function getExigibilidadeIss(): int
     {
         $valor = $this->get('exigibilidade_iss', '1');
@@ -152,11 +240,6 @@ class ModuleConfig
     public function getRetencaoIss(): float
     {
         return (float) $this->get('reteriss', '0');
-    }
-
-    public function isReterIssFatura(): bool
-    {
-        return $this->get('reterissfatura') === 'on';
     }
 
     public function isOptanteSimplesNacional(): bool
@@ -186,19 +269,29 @@ class ModuleConfig
         return $this->get('cancelar') === 'on';
     }
 
-    public function isConsiderarDescontos(): bool
-    {
-        return $this->get('desconto') === 'on';
-    }
-
-    public function isExcluirAddFunds(): bool
-    {
-        return $this->get('addfunds') === 'on';
-    }
-
     public function isExcluirLateFee(): bool
     {
         return $this->get('excluir_latefee') === 'on';
+    }
+
+    public function isDescontarDesconto(): bool
+    {
+        return $this->get('faturas_desconto') === 'on';
+    }
+
+    public function isDescontarCredito(): bool
+    {
+        return $this->get('faturas_credito') === 'on';
+    }
+
+    public function getVerAplic(): string
+    {
+        $valor = trim($this->get('ver_aplic', 'WHMCS-NfseNac-1.0'));
+        if (empty($valor)) {
+            return 'WHMCS-NfseNac-1.0';
+        }
+        // XSD TSVerAplic: máximo 20 caracteres
+        return mb_substr($valor, 0, 20);
     }
 
     public function isDebug(): bool
@@ -211,11 +304,6 @@ class ModuleConfig
         return $this->get('documento_cliente', 'taxid');
     }
 
-    public function isProdutosPersonalizados(): bool
-    {
-        return $this->get('produtos') === 'on';
-    }
-
     // ─── Setup (ativacao) ──────────────────────────────────────────
 
     /**
@@ -224,17 +312,14 @@ class ModuleConfig
     public function insertDefaults(): void
     {
         $defaults = [
+            '_token_secret' => bin2hex(random_bytes(32)),
             'ambiente' => 'homologacao',
             'serie_dps' => '1',
-            'dps_proximo' => '',
-            'excluir_latefee' => '0',
             'documento_cliente' => 'taxid',
             'optante_simples' => '1',
             'emissao_padrao' => '1-Nao Emitir',
             'email' => '0',
             'cancelar' => '0',
-            'desconto' => '0',
-            'addfunds' => '0',
             'debug' => '0',
         ];
 
@@ -259,29 +344,56 @@ class ModuleConfig
      */
     public function ensureEmailTemplate(): void
     {
+        // Remove duplicatas antes de verificar (pode haver resquícios de versões anteriores)
+        $ids = Capsule::table('tblemailtemplates')
+            ->where('name', 'NFS-e Nacional')
+            ->pluck('id')
+            ->toArray();
+
+        if (count($ids) > 1) {
+            // Mantém apenas o de menor ID (o mais antigo / o que será atualizado)
+            $keepId = min($ids);
+            Capsule::table('tblemailtemplates')
+                ->where('name', 'NFS-e Nacional')
+                ->where('id', '!=', $keepId)
+                ->delete();
+        }
+
         $tpl = Capsule::table('tblemailtemplates')
             ->where('name', 'NFS-e Nacional')
             ->first();
 
-        if (empty($tpl)) {
-            $message = '<p>Prezado {$client_name},</p>'
-                . "\r\n"
-                . '<p>Estamos enviando a nota fiscal eletronica de numero <strong>{$idNFS}</strong>, emitida em <strong>{$autorizacao}</strong>.</p>'
-                . "\r\n"
-                . '<p><a href="{$danfse_url}" target="_blank" rel="noopener"><strong>Ver DANFS-e</strong></a></p>'
-                . "\r\n"
-                . '<p><a href="{$xml_url}" target="_blank" rel="noopener"><strong>Ver XML</strong></a></p>'
-                . "\r\n"
-                . '<p>{$signature}</p>';
+        $message = '<p>Prezado {$client_name},</p>'
+            . "\r\n"
+            . '<p>Estamos enviando a nota fiscal eletronica de numero <strong>{$idNFS}</strong>, emitida em <strong>{$autorizacao}</strong>.</p>'
+            . "\r\n"
+            . '<p><a href="{$danfse_url}" target="_blank" rel="noopener"><strong>Ver DANFS-e</strong></a></p>'
+            . "\r\n"
+            . '<p><a href="{$xml_url}" target="_blank" rel="noopener"><strong>Ver XML</strong></a></p>'
+            . "\r\n"
+            . '<p>{$signature}</p>';
 
+        if (empty($tpl)) {
             Capsule::table('tblemailtemplates')->insert([
-                'type' => 'invoice',
-                'name' => 'NFS-e Nacional',
-                'subject' => 'Nota Fiscal Eletronica - Fatura #{$idFatura}',
-                'message' => $message,
-                'plaintext' => 0,
-                'custom' => 1,
+                'type'          => 'general',
+                'name'          => 'NFS-e Nacional',
+                'subject'       => 'Nota Fiscal Eletronica - Fatura #{$idFatura}',
+                'message'       => $message,
+                'attachments'   => '',
+                'fromname'      => '',
+                'fromemail'     => '',
+                'disabled'      => 0,
+                'custom'        => 1,
+                'language'      => '',
+                'copyto'        => '',
+                'blind_copy_to' => '',
+                'plaintext'     => 0,
             ]);
+        } elseif ($tpl->type !== 'general') {
+            // Corrige templates criados com type incorreto
+            Capsule::table('tblemailtemplates')
+                ->where('id', $tpl->id)
+                ->update(['type' => 'general', 'custom' => 1, 'language' => '']);
         }
     }
 

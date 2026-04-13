@@ -14,12 +14,21 @@ enum EmissaoPolitica: int
     /**
      * Determina se deve emitir com base no status atual da fatura.
      */
-    public function deveEmitir(string $invoiceStatus): bool
+    /**
+     * Determina se deve emitir com base no hook que disparou a emissão.
+     *
+     * FATURA_GERADA só responde ao InvoiceCreated.
+     * FATURA_PAGA   só responde ao InvoicePaid.
+     *
+     * Isso evita que "Fatura Gerada" dispare novamente ao pagar uma fatura
+     * que não foi emitida na criação (ex: módulo ativado depois).
+     */
+    public function deveEmitir(string $hookNome): bool
     {
         return match ($this) {
-            self::NAO_EMITIR => false,
-            self::FATURA_GERADA => in_array($invoiceStatus, ['Unpaid', 'Paid', 'Collections', 'Overdue']),
-            self::FATURA_PAGA => $invoiceStatus === 'Paid',
+            self::NAO_EMITIR    => false,
+            self::FATURA_GERADA => $hookNome === 'InvoiceCreated',
+            self::FATURA_PAGA   => $hookNome === 'InvoicePaid',
         };
     }
 

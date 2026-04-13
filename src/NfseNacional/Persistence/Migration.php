@@ -98,6 +98,18 @@ class Migration
                     $table->longText('xml_retorno')->nullable()->after('xml_envio');
                 });
             }
+
+            if (!$schema->hasColumn(self::TABLE_NAME, 'valor_iss')) {
+                $schema->table(self::TABLE_NAME, function ($table) {
+                    $table->decimal('valor_iss', 10, 2)->nullable()->after('total');
+                });
+            }
+
+            if (!$schema->hasColumn(self::TABLE_NAME, 'retido_iss')) {
+                $schema->table(self::TABLE_NAME, function ($table) {
+                    $table->tinyInteger('retido_iss')->nullable()->default(0)->after('valor_iss');
+                });
+            }
         }
     }
 }

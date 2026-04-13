@@ -3,6 +3,7 @@
 namespace GK2\NfseNacional\Fiscal\Mapper;
 
 use GK2\NfseNacional\Config\ModuleConfig;
+use GK2\NfseNacional\Domain\Service\CepIbgeCache;
 use WHMCS\Database\Capsule;
 
 /**
@@ -19,10 +20,12 @@ use WHMCS\Database\Capsule;
 class TomadorMapper
 {
     private ModuleConfig $config;
+    private CepIbgeCache $cepCache;
 
     public function __construct(?ModuleConfig $config = null)
     {
-        $this->config = $config ?? new ModuleConfig();
+        $this->config   = $config ?? new ModuleConfig();
+        $this->cepCache = new CepIbgeCache();
     }
 
     /**
@@ -148,17 +151,14 @@ class TomadorMapper
             $endereco['bairro'] = $this->sanitizeText($address2);
         }
 
-        // endNac > cMun — codigo IBGE do municipio do tomador
-        // Tentar buscar pelo nome da cidade + UF
-        $cidade = trim($client['city'] ?? '');
-        $uf = trim($client['state'] ?? '');
-        $codigoMun = $this->getCodigoMunicipioIBGE($cidade, $uf);
+        // endNac > CEP + cMun (devem ser coerentes — SEFIN valida, erro E0240)
+        $cep = preg_replace('/\D/', '', $client['postcode'] ?? '');
+
+        $codigoMun = $this->getCodigoMunicipioIBGE($cep);
         if (!empty($codigoMun)) {
             $endereco['cMun'] = $codigoMun;
         }
 
-        // endNac > CEP
-        $cep = preg_replace('/\D/', '', $client['postcode'] ?? '');
         if (!empty($cep)) {
             $endereco['cep'] = $cep;
         }
@@ -167,15 +167,75 @@ class TomadorMapper
     }
 
     /**
-     * Busca codigo IBGE do municipio.
-     * Primeiro tenta pela tabela mod_nfsenacional_municipios (se existir),
-     * senao usa o municipio do prestador como fallback.
+     * Resolve o codigo IBGE do municipio do tomador via ViaCEP.
+     *
+     * A SEFIN valida que o CEP pertence ao cMun informado (erro E0240).
+     * Usar o municipio do prestador como fallback causa rejeicao quando
+     * o tomador e de outro municipio.
+     *
+     * Fallback: municipio do prestador (quando CEP vazio ou ViaCEP falhar).
      */
-    private function getCodigoMunicipioIBGE(string $cidade, string $uf): string
+    private function getCodigoMunicipioIBGE(string $cep): string
     {
-        // Fallback: usar o municipio do prestador
-        // Em uma implementacao futura, pode-se consultar uma tabela IBGE
+        if (strlen($cep) === 8) {
+            // Tentativa 1: ViaCEP (API externa)
+            $ibge = $this->consultarViaCep($cep);
+            if (!empty($ibge)) {
+                return $ibge;
+            }
+
+            // Tentativa 2: cache local (data/cep_ibge.json, preenchido manualmente)
+            $ibge = $this->cepCache->get($cep);
+            if (!empty($ibge)) {
+                logActivity("NfseNacional: CEP {$cep} resolvido via cache local → IBGE {$ibge}");
+                return $ibge;
+            }
+
+            logActivity(
+                "NfseNacional: CEP {$cep} não resolvido (ViaCEP falhou e cache local sem entrada). "
+                . "Adicione manualmente em: {$this->cepCache->getFilePath()}"
+            );
+        }
+
         return $this->config->getCodigoMunicipioPrestador();
+    }
+
+    /**
+     * Consulta o codigo IBGE do municipio via API ViaCEP usando cURL.
+     * Timeout curto (3s) para nao impactar o fluxo de emissao.
+     * Fallback silencioso em caso de falha.
+     */
+    private function consultarViaCep(string $cep): string
+    {
+        $url = 'https://viacep.com.br/ws/' . $cep . '/json/';
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 5,
+            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_SSL_VERIFYHOST => false,
+            CURLOPT_HTTPHEADER     => ['Accept: application/json'],
+        ]);
+
+        $json  = curl_exec($ch);
+        $code  = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($json === false || $code !== 200) {
+            logActivity("NfseNacional: ViaCEP falhou para CEP {$cep} — HTTP {$code} cURL: {$error}");
+            return '';
+        }
+
+        $data = json_decode($json, true);
+        if (!is_array($data) || isset($data['erro'])) {
+            logActivity("NfseNacional: ViaCEP CEP {$cep} não encontrado");
+            return '';
+        }
+
+        return $data['ibge'] ?? '';
     }
 
     /**

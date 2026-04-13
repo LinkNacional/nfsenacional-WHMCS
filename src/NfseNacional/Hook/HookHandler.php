@@ -40,6 +40,18 @@ class HookHandler
             $hooks->onInvoiceCancelled($vars);
         });
 
+        // Ícone NFS-e nas listagens de faturas do admin
+        add_hook('AdminAreaFooterOutput', 1, function ($vars) {
+            $ui = new AdminInvoiceListUI();
+            return $ui->getScript();
+        });
+
+        // Ícone NFS-e nas listagens de faturas da área do cliente
+        add_hook('ClientAreaHeadOutput', 1, function ($vars) {
+            $ui = new ClientInvoiceListUI();
+            return $ui->getScript($vars);
+        });
+
         // Menu na area do cliente
         $clientMenu = new ClientAreaMenu();
         $clientMenu->register();

@@ -29,7 +29,7 @@ class ConfigFields
                   . 'margin-left:6px;letter-spacing:0.3px;">Opcional</span>';
 
             return '<span style="font-weight:600;font-size:13px;color:#333;">' . $label . '</span>'
-                . $reqBadge;
+                . ' ' . $reqBadge;
         };
 
         // ── Closure: ícone de ajuda para o fim da Description ────────
@@ -197,7 +197,7 @@ HTML;
         ];
 
         $configarray['fields']['iss'] = [
-            'FriendlyName' => $fn('Alíquota ISS (%)', true),
+            'FriendlyName' => $fn('Alíquota ISS (%)', false),
             'Type'         => 'text',
             'Size'         => '10',
             'Description'  => 'Percentual do ISS. Ex: <strong>2.00</strong> para 2%. Use ponto como separador decimal.'
@@ -218,25 +218,6 @@ HTML;
                     . 'Informe o mesmo valor da alíquota ISS se houver retenção integral. '
                     . 'Deixe vazio se não houver retenção.'),
             'Default'      => '',
-        ];
-
-        $configarray['fields']['reterissfatura'] = [
-            'FriendlyName' => $fn('Descontar ISS Retido na Fatura WHMCS', false),
-            'Type'         => 'yesno',
-            'Description'  => 'Aplica desconto na fatura do WHMCS equivalente ao ISS retido na fonte.'
-                . $tip('Descontar ISS Retido na Fatura WHMCS',
-                    'Se marcado, aplica desconto automático na fatura do WHMCS correspondente '
-                    . 'ao valor do ISS retido, antes da cobrança ao cliente.'),
-        ];
-
-        $configarray['fields']['produtos'] = [
-            'FriendlyName' => $fn('Tributação por Grupo de Produto', false),
-            'Type'         => 'yesno',
-            'Description'  => 'Permite personalizar tributação (CNAE, LC 116, ISS) por grupo de produto/serviço.'
-                . $tip('Tributação por Grupo de Produto',
-                    'Habilita a definição de CNAE, códigos de serviço e alíquota de ISS diferentes '
-                    . 'para cada grupo de produto ou serviço cadastrado no WHMCS. '
-                    . 'Útil quando a empresa emite NFS-e com diferentes itens de serviço.'),
         ];
 
         // ══════════════════════════════════════════════════════════════
@@ -404,16 +385,47 @@ HTML;
             'Default'      => '1',
         ];
 
-        $configarray['fields']['dps_proximo'] = [
-            'FriendlyName' => $fn('Próximo Número de DPS (legado)', false),
+        $configarray['fields']['ver_aplic'] = [
+            'FriendlyName' => $fn('Nome da Aplicação (verAplic)', false),
             'Type'         => 'text',
-            'Size'         => '10',
-            'Description'  => 'Controle de sequência legado. Normalmente não é necessário alterar.'
-                . $tip('Próximo Número de DPS (legado)',
-                    'Número da próxima DPS para controle legado (sem série+ambiente). '
-                    . 'Mantido por compatibilidade com instalações anteriores. '
-                    . 'Em novas instalações, a sequência é controlada automaticamente por série e ambiente.'),
-            'Default'      => '',
+            'Size'         => '25',
+            'Description'  => 'Identificador da aplicação emissora que aparece na NFS-e. Máximo 20 caracteres.'
+                . $tip('verAplic',
+                    'Campo verAplic do XML da DPS (XSD TSVerAplic, máximo 20 caracteres). '
+                    . 'Aparece na NFS-e como identificação do software emissor. '
+                    . 'Padrão: WHMCS-NfseNac-1.0'),
+            'Default'      => 'WHMCS-NfseNac-1.0',
+        ];
+
+        // Campo dinâmico: próximo número de DPS (chave depende do ambiente + série atuais)
+        $dpsAmbiente   = (string) Capsule::table('tbladdonmodules')
+                            ->where('module', 'nfsenacional')
+                            ->where('setting', 'ambiente')
+                            ->value('value');
+        $dpsSerie      = (string) Capsule::table('tbladdonmodules')
+                            ->where('module', 'nfsenacional')
+                            ->where('setting', 'serie_dps')
+                            ->value('value');
+        $dpsAmbiente   = $dpsAmbiente ?: 'homologacao';
+        $dpsSerie      = $dpsSerie    ?: '1';
+        $dpsSettingKey = 'dps_proximo_' . $dpsAmbiente . '_' . $dpsSerie;
+
+        $configarray['fields'][$dpsSettingKey] = [
+            'FriendlyName' => $fn('Próximo Número DPS', false),
+            'Type'         => 'text',
+            'Size'         => '12',
+            'Description'  => 'Próximo número sequencial a ser emitido. '
+                . 'Ambiente atual: <strong>' . htmlspecialchars($dpsAmbiente, ENT_QUOTES, 'UTF-8') . '</strong> &nbsp;|&nbsp; '
+                . 'Série: <strong>' . htmlspecialchars($dpsSerie, ENT_QUOTES, 'UTF-8') . '</strong>. '
+                . 'Chave: <code>' . htmlspecialchars($dpsSettingKey, ENT_QUOTES, 'UTF-8') . '</code>. '
+                . '<strong>Atenção:</strong> altere somente se necessário — numerar abaixo do último emitido causa rejeição pela SEFIN.'
+                . $tip('Próximo Número DPS',
+                    'Número sequencial que será usado na próxima DPS emitida para o ambiente e série atuais. '
+                    . 'O módulo incrementa automaticamente a cada emissão. '
+                    . 'Use este campo somente para corrigir a sequência após uma falha ou migração. '
+                    . 'Nunca utilize um número já enviado à SEFIN — isso causa rejeição. '
+                    . 'Alterar a série reinicia a contagem em uma nova chave independente.'),
+            'Default'      => '1',
         ];
 
         // ══════════════════════════════════════════════════════════════
@@ -425,17 +437,6 @@ HTML;
             '#555',
             'Comportamento do módulo: emissão automática, e-mail, cancelamento e controles de acesso.'
         );
-
-        $configarray['fields']['excluir_latefee'] = [
-            'FriendlyName' => $fn('Excluir Multa de Atraso (LateFee) da Base', false),
-            'Type'         => 'yesno',
-            'Description'  => 'Exclui itens LateFee do valor tributável da NFS-e.'
-                . $tip('Excluir Multa de Atraso (LateFee) da Base',
-                    'Se marcado, itens do tipo LateFee (multa por atraso no pagamento) '
-                    . 'não serão somados ao valor tributável da NFS-e. '
-                    . 'Útil quando a multa não deve compor a base de cálculo do ISS.'),
-            'Default'      => '0',
-        ];
 
         $configarray['fields']['documento_cliente'] = [
             'FriendlyName' => $fn('Campo CPF/CNPJ do Cliente', true),
@@ -478,6 +479,36 @@ HTML;
                     . 'e o arquivo XML após a autorização da nota fiscal.'),
         ];
 
+        $configarray['fields']['excluir_latefee'] = [
+            'FriendlyName' => $fn('Excluir Late Fee da Base de Cálculo', false),
+            'Type'         => 'yesno',
+            'Description'  => 'Exclui multas por atraso (Late Fee) do valor e da discriminação da NFS-e.'
+                . $tip('Excluir Late Fee da Base de Cálculo',
+                    'Quando marcado, multas por atraso geradas pelo WHMCS (Late Fee) são removidas '
+                    . 'do valor total e da discriminação enviados à SEFIN. '
+                    . 'Quando desmarcado, Late Fee integra a base de cálculo da nota.'),
+        ];
+
+        $configarray['fields']['faturas_desconto'] = [
+            'FriendlyName' => $fn('Faturas (Descontos)', false),
+            'Type'         => 'yesno',
+            'Description'  => 'Desconta o valor de desconto da fatura do valor total da NFS-e.'
+                . $tip('Faturas (Descontos)',
+                    'Quando marcado, o desconto aplicado na fatura (campo discount) é subtraído '
+                    . 'do valor de serviços enviado à SEFIN. '
+                    . 'Use quando o desconto representa uma redução real no valor do serviço prestado.'),
+        ];
+
+        $configarray['fields']['faturas_credito'] = [
+            'FriendlyName' => $fn('Faturas (Fundos/Crédito)', false),
+            'Type'         => 'yesno',
+            'Description'  => 'Desconta o crédito de conta aplicado na fatura do valor total da NFS-e.'
+                . $tip('Faturas (Fundos/Crédito)',
+                    'Quando marcado, o crédito de conta (saldo do cliente) aplicado na fatura '
+                    . 'é subtraído do valor de serviços enviado à SEFIN. '
+                    . 'Use quando o crédito representa um pagamento antecipado pelo mesmo serviço.'),
+        ];
+
         $configarray['fields']['cancelar'] = [
             'FriendlyName' => $fn('Cancelar NFS-e ao Cancelar Fatura', false),
             'Type'         => 'yesno',
@@ -488,27 +519,8 @@ HTML;
                     . 'com motivo "Erro na emissão".'),
         ];
 
-        $configarray['fields']['desconto'] = [
-            'FriendlyName' => $fn('Deduzir Descontos/Créditos da Base de Cálculo', false),
-            'Type'         => 'yesno',
-            'Description'  => 'Deduz créditos e descontos aplicados na fatura do valor tributável da NFS-e.'
-                . $tip('Deduzir Descontos/Créditos da Base de Cálculo',
-                    'Se marcado, créditos e descontos aplicados na fatura serão deduzidos '
-                    . 'do valor total antes do cálculo dos tributos. '
-                    . 'Ex: fatura de R$100 com R$10 de crédito gera NFS-e de R$90.'),
-        ];
-
-        $configarray['fields']['addfunds'] = [
-            'FriendlyName' => $fn('Não Emitir NFS-e para Adicionar Fundos', false),
-            'Type'         => 'yesno',
-            'Description'  => 'Ignora faturas do tipo AddFunds na emissão de NFS-e.'
-                . $tip('Não Emitir NFS-e para Adicionar Fundos',
-                    'Se marcado, faturas do tipo "Adicionar Fundos" (AddFunds) serão ignoradas '
-                    . 'e não terão NFS-e emitida, independente da configuração de emissão do cliente.'),
-        ];
-
         $configarray['fields']['access'] = [
-            'FriendlyName' => $fn('Perfis com Permissão Manual de NFS-e', false),
+            'FriendlyName' => $fn('Perfis com Permissão Manual de NFS-e', true),
             'Type'         => 'text',
             'Size'         => '40',
             'Description'  => 'IDs dos perfis de admin autorizados (separados por vírgula). Vazio = todos os admins.'
@@ -624,13 +636,6 @@ HTML;
             return '';
         }
 
-        $sysurl   = Capsule::table('tblconfiguration')
-            ->where('setting', 'SystemURL')
-            ->value('value');
-        $admindir = Capsule::table('tblconfiguration')
-            ->where('setting', 'AdminDirectory')
-            ->value('value');
-
-        return rtrim($sysurl, '/') . '/' . $admindir . '/configemailtemplates.php?action=edit&id=' . $tpl->id;
+        return 'configemailtemplates.php?action=edit&id=' . $tpl->id;
     }
 }

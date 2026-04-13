@@ -44,11 +44,6 @@ class DpsSequence
         $key = $this->getSettingKey($serie, $ambiente);
         $value = $this->getSetting($key);
 
-        if (empty($value)) {
-            // Fallback: usar configuracao geral dps_proximo
-            $value = $this->getSetting('dps_proximo');
-        }
-
         return (int) $value;
     }
 

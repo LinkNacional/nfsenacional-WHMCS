@@ -28,7 +28,7 @@ class ApiEndpoints
     // ─── Dominios por ambiente ─────────────────────────────────────
     private const DOMAIN_SUFFIX = [
         'homologacao' => 'producaorestrita.nfse.gov.br',
-        'producao'    => 'cabecadeovos.com.br',
+        'producao'    => 'nfse.gov.br',
     ];
 
     // ─── Servicos (subdominio + path) ──────────────────────────────

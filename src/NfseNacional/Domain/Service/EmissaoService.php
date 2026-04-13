@@ -141,10 +141,19 @@ class EmissaoService
                 if (!empty($response->data['nfseXmlGZipB64'])) {
                     $updateData['xml_retorno'] = $response->data['nfseXmlGZipB64'];
 
-                    // Extrair número da NFS-e do XML autorizado
                     $xmlNfse = @gzdecode(base64_decode($response->data['nfseXmlGZipB64']));
-                    if ($xmlNfse && preg_match('/<nNFSe>(\w+)<\/nNFSe>/', $xmlNfse, $m)) {
-                        $updateData['numero_nfse_nacional'] = $m[1];
+                    if ($xmlNfse) {
+                        if (preg_match('/<nNFSe>(\w+)<\/nNFSe>/', $xmlNfse, $m)) {
+                            $updateData['numero_nfse_nacional'] = $m[1];
+                        }
+                        // Valor do ISS calculado pelo SEFIN
+                        if (preg_match('/<vISSQN>([\d.]+)<\/vISSQN>/', $xmlNfse, $m)) {
+                            $updateData['valor_iss'] = (float) $m[1];
+                        }
+                        // Retenção: 1=Não retido, 2=Retido pelo tomador, 3=Retido pelo intermediário
+                        if (preg_match('/<tpRetISSQN>(\d)<\/tpRetISSQN>/', $xmlNfse, $m)) {
+                            $updateData['retido_iss'] = (int) $m[1] > 1 ? 1 : 0;
+                        }
                     }
                 }
 
@@ -197,9 +206,12 @@ class EmissaoService
     }
 
     /**
-     * Verifica se deve emitir NFS-e para um cliente/fatura.
+     * Verifica se deve emitir NFS-e para um cliente (hooks automáticos).
+     * Usa política do cliente; se vazia, cai no global.
+     *
+     * @param string $hookNome 'InvoiceCreated' | 'InvoicePaid'
      */
-    public function deveEmitir(int $userId, string $invoiceStatus): bool
+    public function deveEmitir(int $userId, string $hookNome): bool
     {
         $politica = $this->getPoliticaCliente($userId);
 
@@ -207,7 +219,7 @@ class EmissaoService
             $politica = $this->config->getEmissaoPadrao();
         }
 
-        return $politica->deveEmitir($invoiceStatus);
+        return $politica->deveEmitir($hookNome);
     }
 
     /**
@@ -222,12 +234,22 @@ class EmissaoService
             return '';
         }
 
-        $company = trim($result['companyname'] ?? '');
-        if (!empty($company)) {
-            return $company;
+        $fullName = trim(($result['firstname'] ?? '') . ' ' . ($result['lastname'] ?? ''));
+        if (!empty($fullName)) {
+            return $fullName;
         }
 
-        return trim(($result['firstname'] ?? '') . ' ' . ($result['lastname'] ?? ''));
+        return trim($result['companyname'] ?? '');
+    }
+
+    /**
+     * Verifica se a emissão manual está bloqueada para o cliente.
+     * Só bloqueia quando o campo do cliente estiver EXPLICITAMENTE em "Não Emitir".
+     * Campo vazio (nenhum) ou qualquer outro valor permite emissão manual pelo admin.
+     */
+    public function emissaoManualBloqueada(int $userId): bool
+    {
+        return $this->getPoliticaCliente($userId) === EmissaoPolitica::NAO_EMITIR;
     }
 
     private function getPoliticaCliente(int $userId): ?EmissaoPolitica

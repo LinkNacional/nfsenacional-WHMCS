@@ -100,7 +100,7 @@ class DpsPayloadBuilder
         // Campos obrigatorios da TCInfDPS
         $this->addElement($dom, $infDPS, 'tpAmb', $this->config->getAmbiente()->isProducao() ? '1' : '2');
         $this->addElement($dom, $infDPS, 'dhEmi', date('Y-m-d\TH:i:sP'));
-        $this->addElement($dom, $infDPS, 'verAplic', 'WHMCS-NfseNac-1.0');
+        $this->addElement($dom, $infDPS, 'verAplic', $this->config->getVerAplic());
         // Série deve ser numérica conforme XSD (usar serieId gerada: 5 dígitos numéricos)
         $this->addElement($dom, $infDPS, 'serie', $serieId);
         // nDPS deve ser o número natural sem zeros à esquerda (TSNumDPS exige primeiro dígito 1-9)

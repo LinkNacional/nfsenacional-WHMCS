@@ -19,6 +19,7 @@ use GK2\NfseNacional\Bootstrap;
 use GK2\NfseNacional\Admin\ConfigFields;
 use GK2\NfseNacional\Admin\AdminController;
 use GK2\NfseNacional\ClientArea\ClientAreaController;
+use GK2\NfseNacional\ClientArea\DownloadController;
 use GK2\NfseNacional\Persistence\Migration;
 use GK2\NfseNacional\Config\ModuleConfig;
 
@@ -91,6 +92,13 @@ function nfsenacional_deactivate()
  */
 function nfsenacional_output($vars)
 {
+    // Garante colunas e template de email em instalações existentes (idempotente)
+    (new Migration())->addColumnsIfMissing();
+    $moduleConfig = new ModuleConfig();
+    $moduleConfig->ensureEmailTemplate();
+    // Migra senha do certificado de plaintext para AES-256-CBC (idempotente)
+    $moduleConfig->ensureCertificadoSenhaEncrypted();
+
     $controller = new AdminController();
     $controller->dispatch($vars);
 }
@@ -101,6 +109,17 @@ function nfsenacional_output($vars)
  */
 function nfsenacional_clientarea($vars)
 {
+    // Download proxy (DANFS-e / XML) — encerra com exit
+    $dl = $_GET['dl'] ?? '';
+    if (in_array($dl, ['danfse', 'xml'], true)) {
+        (new DownloadController())->handle($dl);
+    }
+
+    // Endpoint AJAX da tabela — encerra com exit
+    if (!empty($_GET['ajax'])) {
+        (new ClientAreaController())->handleAjax();
+    }
+
     $controller = new ClientAreaController();
     return $controller->render($vars);
 }

@@ -1,0 +1,7 @@
+{
+    "LEIA": "Adicione abaixo: CEP exato (8 dígitos) ou prefixo (5 dígitos) como chave, código IBGE como valor.",
+    "LEIA2": "Para descobrir o IBGE: acesse https://viacep.com.br/ws/SEU_CEP/json/ e veja o campo 'ibge'.",
+    "LEIA3": "Exemplos de uso — remova estas chaves LEIA* e adicione os seus:",
+    "87160000": "4114104",
+    "87160": "4114204"
+}

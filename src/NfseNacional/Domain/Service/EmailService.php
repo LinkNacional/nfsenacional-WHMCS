@@ -9,6 +9,8 @@ use GK2\NfseNacional\Persistence\NfseRepository;
  *
  * Utiliza a Local API do WHMCS para enviar o template "NFS-e Nacional"
  * com as variaveis de nota fiscal preenchidas.
+ * Os links de DANFS-e e XML apontam para o endpoint proxy do próprio sistema,
+ * garantindo controle de acesso e independência dos URLs do governo.
  */
 class EmailService
 {
@@ -33,20 +35,23 @@ class EmailService
             return ['sucesso' => false, 'msg' => 'Nenhuma NFS-e encontrada para esta fatura.'];
         }
 
+        $urlService = new DownloadUrlService();
+        $danfseUrl  = $urlService->danfseUrl($nfse);
+        $xmlUrl     = $urlService->xmlUrl($nfse);
+
         try {
             $result = localAPI('SendEmail', [
                 'messagename' => 'NFS-e Nacional',
-                'id' => $invoiceId,
-                'customtype' => 'invoice',
-                'customvars' => base64_encode(serialize([
-                    'idNFS' => $nfse->numeroNfseNacional ?? $nfse->chaveAcesso ?? '',
-                    'idFatura' => $invoiceId,
+                'id'          => $nfse->clientId,
+                'customvars'  => base64_encode(serialize([
+                    'idNFS'       => $nfse->numeroNfseNacional ?? $nfse->chaveAcesso ?? '',
+                    'idFatura'    => $invoiceId,
                     'autorizacao' => $nfse->dataAutorizacao ?? '',
-                    'danfse_url' => $nfse->danfseUrl ?? '',
-                    'xml_url' => $nfse->xmlUrl ?? '',
-                    'link' => $nfse->danfseUrl ?? '',
-                    'xml' => $nfse->xmlUrl ?? '',
-                    'chave_acesso' => $nfse->chaveAcesso ?? '',
+                    'danfse_url'  => $danfseUrl,
+                    'xml_url'     => $xmlUrl,
+                    'link'        => $danfseUrl,
+                    'xml'         => $xmlUrl,
+                    'chave_acesso'=> $nfse->chaveAcesso ?? '',
                 ])),
             ]);
 

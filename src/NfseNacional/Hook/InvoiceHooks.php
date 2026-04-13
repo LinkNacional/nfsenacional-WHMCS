@@ -95,16 +95,6 @@ class InvoiceHooks
             return;
         }
 
-        // Verificar AddFunds
-        if ($this->config->isExcluirAddFunds()) {
-            $items = $invoice['items']['item'] ?? [];
-            foreach ($items as $item) {
-                if (($item['type'] ?? '') === 'AddFunds') {
-                    return;
-                }
-            }
-        }
-
         // Verificar se ja existe NFS-e emitida (filtrado pelo ambiente ativo)
         $repository = new NfseRepository($this->guard);
         $existente = $repository->findByInvoice($invoiceId);
@@ -112,11 +102,11 @@ class InvoiceHooks
             return;
         }
 
-        // Verificar politica de emissao
+        // Verificar politica de emissao com base no hook que disparou
+        // (não no status) — evita que FATURA_GERADA emita ao pagar
         $userId = (int) $invoice['userid'];
-        $invoiceStatus = $invoice['status'];
 
-        if (!$this->emissaoService->deveEmitir($userId, $invoiceStatus)) {
+        if (!$this->emissaoService->deveEmitir($userId, $hookName)) {
             return;
         }
 

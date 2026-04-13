@@ -4,6 +4,7 @@ namespace GK2\NfseNacional\Admin\Action;
 
 use GK2\NfseNacional\Domain\AmbienteGuard;
 use GK2\NfseNacional\Persistence\NfseRepository;
+use GK2\NfseNacional\Security\TokenSigner;
 use WHMCS\Database\Capsule;
 
 /**
@@ -22,8 +23,7 @@ class ExcluirAction
         $token = $_REQUEST['token'] ?? '';
 
         // Validar token
-        $expectedToken = hash_hmac('sha1', (string) $id, 'nfsenacional');
-        if ($token !== $expectedToken || $id <= 0) {
+        if ($id <= 0 || !TokenSigner::verify((string) $id, $token)) {
             logActivity('NFS-e Nacional: Tentativa de exclusao com token invalido. ID: ' . $id);
             header('Location: ' . $modulelink . '&action=list&delete=' . $id . '&delete_status=0');
             exit;

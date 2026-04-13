@@ -4,6 +4,7 @@ namespace GK2\NfseNacional\Admin\Action;
 
 use GK2\NfseNacional\Domain\AmbienteGuard;
 use GK2\NfseNacional\Domain\Service\CancelamentoService;
+use GK2\NfseNacional\Security\TokenSigner;
 
 /**
  * Acao de cancelamento manual de NFS-e Nacional a partir do painel admin.
@@ -16,8 +17,7 @@ class CancelarAction
         $token = $_REQUEST['token'] ?? '';
 
         // Validar token
-        $expectedToken = hash_hmac('sha1', (string) $invoiceId, 'nfsenacional');
-        if ($token !== $expectedToken || $invoiceId <= 0) {
+        if ($invoiceId <= 0 || !TokenSigner::verify((string) $invoiceId, $token)) {
             logActivity('NFS-e Nacional: Tentativa de cancelamento com token invalido. Invoice: ' . $invoiceId);
             header('Location: invoices.php?action=edit&id=' . $invoiceId . '&nfse_error=token');
             exit;

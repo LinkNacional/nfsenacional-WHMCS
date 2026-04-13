@@ -3,7 +3,6 @@
 namespace GK2\NfseNacional\Fiscal\Mapper;
 
 use GK2\NfseNacional\Config\ModuleConfig;
-use WHMCS\Database\Capsule;
 
 /**
  * Mapeia itens da fatura WHMCS para a estrutura de servico
@@ -27,6 +26,15 @@ class ServicoMapper
     }
 
     /**
+     * Tipos de item sempre excluídos da NFS-e (independente de configuração).
+     */
+    private const TIPOS_SEMPRE_EXCLUIDOS = [
+        'PaymentGateway', // tarifas de boleto, cartão, etc.
+        'Credit',         // créditos negativos de item
+        'Tax',            // impostos sobre a fatura
+    ];
+
+    /**
      * Mapeia os itens da fatura para a estrutura de servico.
      *
      * @param array $invoice Dados da fatura (retorno de GetInvoice)
@@ -34,13 +42,20 @@ class ServicoMapper
      */
     public function map(array $invoice): array
     {
-        $items = $invoice['items']['item'] ?? [];
+        $items           = $invoice['items']['item'] ?? [];
+        $excluirLateFee  = $this->config->isExcluirLateFee();
         $descricaoPartes = [];
-        $valorTotal = 0.0;
+        $valorTotal      = 0.0;
 
         foreach ($items as $item) {
-            // Excluir Late Fee se configurado
-            if ($this->config->isExcluirLateFee() && ($item['type'] ?? '') === 'LateFee') {
+            $tipo = $item['type'] ?? '';
+
+            if (in_array($tipo, self::TIPOS_SEMPRE_EXCLUIDOS, true)) {
+                continue;
+            }
+
+            // Late Fee: excluir somente se configurado
+            if ($tipo === 'LateFee' && $excluirLateFee) {
                 continue;
             }
 
@@ -58,15 +73,25 @@ class ServicoMapper
             }
         }
 
-        // Considerar descontos se configurado
-        if ($this->config->isConsiderarDescontos()) {
-            $credit = (float) ($invoice['credit'] ?? 0);
-            if ($credit > 0) {
-                $valorTotal -= $credit;
+        // Subtrair desconto da fatura se configurado
+        if ($this->config->isDescontarDesconto()) {
+            $desconto = (float) ($invoice['discount'] ?? 0);
+            if ($desconto > 0) {
+                $valorTotal -= $desconto;
             }
         }
 
-        // Obter codigos fiscais (globais ou por grupo de produto)
+        // Subtrair crédito de conta aplicado se configurado
+        if ($this->config->isDescontarCredito()) {
+            $credito = (float) ($invoice['credit'] ?? 0);
+            if ($credito > 0) {
+                $valorTotal -= $credito;
+            }
+        }
+
+        $valorTotal = max(0.0, $valorTotal);
+
+        // Obter codigos fiscais globais
         $codigosFiscais = $this->getCodigosFiscais($items);
 
         $discriminacao = implode("\n", $descricaoPartes);
@@ -86,65 +111,16 @@ class ServicoMapper
     }
 
     /**
-     * Obtem codigos fiscais, considerando personalizacao por grupo.
+     * Retorna os codigos fiscais globais configurados no addon.
      */
     private function getCodigosFiscais(array $items): array
     {
-        // Se personalizacao por grupo esta habilitada, tentar buscar
-        if ($this->config->isProdutosPersonalizados() && !empty($items)) {
-            $grupoConfig = $this->getGrupoConfig($items);
-            if ($grupoConfig !== null) {
-                return $grupoConfig;
-            }
-        }
-
-        // Codigos globais
         return [
             'codigo_servico_nacional' => $this->config->getCodigoServicoNacional(),
             'codigo_servico' => $this->config->getCodigoServico(),
             'codigo_municipal' => $this->config->getCodigoMunicipal(),
             'cnae' => $this->config->getCnae(),
         ];
-    }
-
-    /**
-     * Busca configuracao fiscal especifica do grupo de produto.
-     */
-    private function getGrupoConfig(array $items): ?array
-    {
-        // Buscar primeiro item que tenha relid (referencia a um servico/produto)
-        foreach ($items as $item) {
-            $relId = $item['relid'] ?? 0;
-            if (empty($relId)) {
-                continue;
-            }
-
-            // Buscar grupo do produto
-            $groupId = Capsule::table('tblhosting')
-                ->join('tblproducts', 'tblhosting.packageid', '=', 'tblproducts.id')
-                ->where('tblhosting.id', $relId)
-                ->value('tblproducts.gid');
-
-            if (empty($groupId)) {
-                continue;
-            }
-
-            // Buscar configuracao do grupo
-            $grupo = Capsule::table('mod_nfsenacional_grupo')
-                ->where('idgrupo', $groupId)
-                ->first();
-
-            if ($grupo) {
-                return [
-                    'codigo_servico_nacional' => $grupo->codigo_servico_nacional ?? $this->config->getCodigoServicoNacional(),
-                    'codigo_servico' => $grupo->codigoatividade ?? $this->config->getCodigoServico(),
-                    'codigo_municipal' => $grupo->codigomunicipal ?? $this->config->getCodigoMunicipal(),
-                    'cnae' => $grupo->cnae ?? $this->config->getCnae(),
-                ];
-            }
-        }
-
-        return null;
     }
 
     /**
@@ -155,8 +131,8 @@ class ServicoMapper
         // Remover tags HTML
         $text = strip_tags($text);
 
-        // Substituir quebras de linha por espaço (APIs fiscais rejeitam \n em xDescServ)
-        $text = str_replace(["\r\n", "\r", "\n"], ' ', $text);
+        // Substituir quebras de linha por separador visual (APIs fiscais rejeitam \n em xDescServ)
+        $text = str_replace(["\r\n", "\r", "\n"], ' | ', $text);
 
         // Remover caracteres de controle
         $text = preg_replace('/[\x00-\x1F\x7F]/', '', $text);
