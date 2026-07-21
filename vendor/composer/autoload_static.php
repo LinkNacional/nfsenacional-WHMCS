@@ -83,6 +83,7 @@ class ComposerStaticInit0665c9af67470aefc551a1b93dbd9aa8
         'GK2\\NfseNacional\\Domain\\Enum\\EmissaoPolitica' => __DIR__ . '/../..' . '/src/NfseNacional/Domain/Enum/EmissaoPolitica.php',
         'GK2\\NfseNacional\\Domain\\Enum\\NfseStatus' => __DIR__ . '/../..' . '/src/NfseNacional/Domain/Enum/NfseStatus.php',
         'GK2\\NfseNacional\\Domain\\Service\\CancelamentoService' => __DIR__ . '/../..' . '/src/NfseNacional/Domain/Service/CancelamentoService.php',
+        'GK2\\NfseNacional\\Domain\\Service\\CepIbgeCache' => __DIR__ . '/../..' . '/src/NfseNacional/Domain/Service/CepIbgeCache.php',
         'GK2\\NfseNacional\\Domain\\Service\\ConsultaService' => __DIR__ . '/../..' . '/src/NfseNacional/Domain/Service/ConsultaService.php',
         'GK2\\NfseNacional\\Domain\\Service\\DownloadUrlService' => __DIR__ . '/../..' . '/src/NfseNacional/Domain/Service/DownloadUrlService.php',
         'GK2\\NfseNacional\\Domain\\Service\\EmailService' => __DIR__ . '/../..' . '/src/NfseNacional/Domain/Service/EmailService.php',

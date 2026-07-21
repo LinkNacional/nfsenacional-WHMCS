@@ -25,6 +25,7 @@ return array(
     'GK2\\NfseNacional\\Domain\\Enum\\EmissaoPolitica' => $baseDir . '/src/NfseNacional/Domain/Enum/EmissaoPolitica.php',
     'GK2\\NfseNacional\\Domain\\Enum\\NfseStatus' => $baseDir . '/src/NfseNacional/Domain/Enum/NfseStatus.php',
     'GK2\\NfseNacional\\Domain\\Service\\CancelamentoService' => $baseDir . '/src/NfseNacional/Domain/Service/CancelamentoService.php',
+    'GK2\\NfseNacional\\Domain\\Service\\CepIbgeCache' => $baseDir . '/src/NfseNacional/Domain/Service/CepIbgeCache.php',
     'GK2\\NfseNacional\\Domain\\Service\\ConsultaService' => $baseDir . '/src/NfseNacional/Domain/Service/ConsultaService.php',
     'GK2\\NfseNacional\\Domain\\Service\\DownloadUrlService' => $baseDir . '/src/NfseNacional/Domain/Service/DownloadUrlService.php',
     'GK2\\NfseNacional\\Domain\\Service\\EmailService' => $baseDir . '/src/NfseNacional/Domain/Service/EmailService.php',

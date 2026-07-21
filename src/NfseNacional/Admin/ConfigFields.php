@@ -519,7 +519,7 @@ HTML;
                     . 'com motivo "Erro na emissão".'),
         ];
 
-        $configarray['fields']['access'] = [
+        $configarray['fields']['perfis_manuais'] = [
             'FriendlyName' => $fn('Perfis com Permissão Manual de NFS-e', true),
             'Type'         => 'text',
             'Size'         => '40',
