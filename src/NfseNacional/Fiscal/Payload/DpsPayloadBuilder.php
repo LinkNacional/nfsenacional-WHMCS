@@ -4,8 +4,8 @@ namespace GK2\NfseNacional\Fiscal\Payload;
 
 use GK2\NfseNacional\Config\ModuleConfig;
 use GK2\NfseNacional\Fiscal\Mapper\PrestadorMapper;
-use GK2\NfseNacional\Fiscal\Mapper\TomadorMapper;
 use GK2\NfseNacional\Fiscal\Mapper\ServicoMapper;
+use GK2\NfseNacional\Fiscal\Mapper\TomadorMapper;
 use GK2\NfseNacional\Fiscal\Mapper\TributoMapper;
 
 /**
@@ -60,7 +60,7 @@ class DpsPayloadBuilder
         $servico = $this->servicoMapper->map($invoice);
         $tributos = $this->tributoMapper->map(
             $servico['valorServicos'],
-            (int) $invoice['userid']
+            (int) $invoice['userid'],
         );
 
         $competencia = $this->getCompetencia($invoice, $origem);
@@ -283,7 +283,7 @@ class DpsPayloadBuilder
                 // Codigo informado mas com comprimento invalido — omitir e logar para evitar E0314
                 logActivity(
                     '[NFS-e Nacional] cTribMun ignorado: "' . $cTribMunRaw . '" nao tem exatamente 3 digitos. '
-                    . 'Verifique o Codigo de Tributacao Municipal nas configuracoes do addon.'
+                    . 'Verifique o Codigo de Tributacao Municipal nas configuracoes do addon.',
                 );
             }
         }
@@ -388,7 +388,7 @@ class DpsPayloadBuilder
         throw new \RuntimeException(
             'Nao foi possivel determinar a data de competencia da fatura #' .
             ($invoice['invoiceid'] ?? '?') .
-            '. Fatura nao paga e sem data de emissao valida.'
+            '. Fatura nao paga e sem data de emissao valida.',
         );
     }
 

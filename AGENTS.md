@@ -157,9 +157,12 @@ Implemente a feature seguindo as regras de arquitetura acima.
 **4. Verificação**
 
 ```bash
+composer check      # Roda tudo: phpstan + cs-check + audit + test
 composer test        # PHPUnit
-composer phpstan     # Análise estática (nível 6+)
+composer phpstan     # Análise estática (nível 5)
 composer cs-check    # PHP CS Fixer (PSR-12)
+composer cs-fix      # Corrige estilo automaticamente
+composer audit       # Vulnerabilidades nas dependências
 ```
 
 ---

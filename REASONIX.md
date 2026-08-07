@@ -10,8 +10,17 @@
 # Setup inicial (uma vez após clonar)
 composer install
 
-# Testes (quando houver)
+# Testes
 composer test
+
+# Análise estática + estilo + auditoria (roda no CI)
+composer check
+
+# Individualmente:
+composer phpstan      # PHPStan nível 5
+composer cs-check     # PHP CS Fixer (PSR-12)
+composer cs-fix       # Corrige estilo automaticamente
+composer audit        # Verifica vulnerabilidades nas dependências
 
 # Rodar um script one-shot
 php -f script.php
