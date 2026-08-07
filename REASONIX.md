@@ -50,6 +50,52 @@ sobre schemas XSD, endpoints de API ou tabelas de códigos oficiais.
 
 ## Regras Reasonix-específicas
 
+### RTK — Rust Token Killer (compressão de output de terminal)
+
+**Regra de ouro:** se um comando produz mais de 50 linhas, **corte
+automaticamente** com pipe. O objetivo é gastar tokens com código, não com log.
+
+#### Flags obrigatórias por ferramenta
+
+```bash
+# Composer
+composer install --no-interaction --quiet 2>&1 | tail -5
+composer update  --no-interaction --quiet 2>&1 | tail -5
+
+# PHPStan
+composer phpstan -- --no-progress --error-format=table 2>&1
+
+# PHP CS Fixer (já é conciso por padrão — não precisa filtrar)
+composer cs-check
+composer cs-fix
+
+# PHPUnit (quando houver testes)
+composer test -- --no-progress --testdox 2>&1 | tail -30
+```
+
+#### Filtro automático para qualquer comando >50 linhas
+
+```bash
+comando 2>&1 | tail -30
+# OU
+comando 2>&1 | grep -E "error|Error|fail|FAIL|warning|Warning|✗|❌" 
+```
+
+#### O que NUNCA mostrar na íntegra
+
+- `composer install`/`update` completo (use `--quiet` + `tail`)
+- `git push` / `git fetch` output (use `--quiet` ou `2>&1 | tail -1`)
+- PHPStan progress bar (use `--no-progress`)
+- Listas de dependências no composer.lock
+
+#### Formato de relatório pós-comando
+
+```
+[exit N] ferramenta — resumo
+```
+
+Exemplo: `[exit 0] phpstan — 0 errors` ou `[exit 1] phpstan — 3 errors (ver acima)`
+
 ### Antes de afirmar que algo não existe
 
 Use `search_content` para confirmar. Exemplo:

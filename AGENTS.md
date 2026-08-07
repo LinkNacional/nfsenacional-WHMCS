@@ -182,6 +182,49 @@ composer audit       # Vulnerabilidades nas dependências
 
 ---
 
+## Modo econômico — Caveman Mode
+
+Para operações rotineiras (testes, lint, CS fix, comandos composer), use o
+formato telegráfico. **Cada token economizado é um token disponível para
+raciocínio sobre o código.**
+
+### Formato de resposta para comandos bem-sucedidos
+
+```
+[exit 0] comando — resumo 1 linha
+```
+
+Exemplos:
+```
+[exit 0] phpstan — 0 errors
+[exit 0] cs-fix — 17 files fixed
+[exit 0] composer audit — 0 vulnerabilities
+```
+
+### Sempre suprimir
+
+- Barras de progresso (use `--no-progress` quando disponível)
+- Tabelas de "Lock file operations: N installs, N updates"
+- Listas de "Downloading..." e "Extracting archive"
+- Mensagens de "Writing lock file", "Generating autoload files"
+- Sugestões do Composer ("N package suggestions were added")
+- Qualquer output que não seja erro ou resultado direto
+
+### Quando expandir
+
+- ❌ Comando falhou → mostrar o erro completo
+- ❌ Usuário pediu "mostre o output" ou "detalhes"
+- ❌ Decisão de design que precisa de contexto
+- ✅ Comando passou → 1 linha, próximo passo
+
+### Prosa só quando necessário
+
+Use parágrafos apenas para: explicar arquitetura, justificar decisões de
+design, reportar achados de segurança, ou responder perguntas conceituais.
+Nunca narre o óbvio ("Agora vou rodar o PHPStan...").
+
+---
+
 ## Referências
 
 ### Arquivos versionados neste repositório
