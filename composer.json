@@ -3,7 +3,7 @@
     "description": "WHMCS Addon para NFS-e Nacional (ADN)",
     "type": "project",
     "require": {
-        "php": ">=8.1",
+        "php": ">=8.2",
         "guzzlehttp/guzzle": "^7.0",
         "robrichards/xmlseclibs": "^3.1"
     },
