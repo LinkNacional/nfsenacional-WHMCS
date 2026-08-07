@@ -8,13 +8,13 @@
 
 ```bash
 # Setup inicial (uma vez após clonar)
-cd nfsenacional-WHMCS && composer install
+composer install
 
 # Testes (quando houver)
-cd nfsenacional-WHMCS && composer test
+composer test
 
 # Rodar um script one-shot
-php -f nfsenacional-WHMCS/script.php
+php -f script.php
 ```
 
 ## Arquivos de referência — leia antes de propor mudanças
@@ -22,12 +22,22 @@ php -f nfsenacional-WHMCS/script.php
 | Arquivo | Quando ler |
 | --- | --- |
 | `AGENTS.md` | **Sempre.** Regras de arquitetura, estilo, proibições. |
-| `DOCUMENTACAO-REFERENCIA-NFSE.md` | Dúvidas sobre códigos IBGE, NBS, tributação, schemas XSD, endpoints de API. |
-| `nfsenacional-WHMCS/CHANGELOG.md` | Antes de criar uma entrada de changelog para nova versão. |
-| `MANUAL API/v1-API-NFS-e-*.json` | Implementar ou depurar chamadas à API da Sefin Nacional. |
-| `esquemas-nfse-rtc-v1-01-*/tiposComplexos_v1.01.xsd` | Montar/altear XML da DPS ou NFS-e. |
-| `esquemas-nfse-rtc-v1-01-*/tiposSimples_v1.01.xsd` | Validar formatos de campos (regex, tamanho máximo). |
-| `esquemas-nfse-rtc-v1-01-*/tiposEventos_v1.01.xsd` | Implementar cancelamento ou outros eventos. |
+| `CHANGELOG.md` | Antes de criar uma entrada de changelog para nova versão. |
+
+### Referências externas (não versionadas neste repositório)
+
+Estes arquivos estão disponíveis apenas no ambiente local de desenvolvimento
+(pasta `nota-fiscal/` acima deste módulo). Consulte-os se precisar de informações
+sobre schemas XSD, endpoints de API ou tabelas de códigos oficiais.
+
+| Arquivo externo | Quando consultar |
+| --- | --- |
+| `../DOCUMENTACAO-REFERENCIA-NFSE.md` | Dúvidas sobre códigos IBGE, NBS, tributação, schemas XSD, endpoints de API. |
+| `../MANUAL API/v1-API-NFS-e-*.json` | Implementar ou depurar chamadas à API da Sefin Nacional. |
+| `../esquemas-nfse-rtc-v1-01-*/tiposComplexos_v1.01.xsd` | Montar/alterar XML da DPS ou NFS-e. |
+| `../esquemas-nfse-rtc-v1-01-*/tiposSimples_v1.01.xsd` | Validar formatos de campos (regex, tamanho máximo). |
+| `../esquemas-nfse-rtc-v1-01-*/tiposEventos_v1.01.xsd` | Implementar cancelamento ou outros eventos. |
+| `../anexo_*.xlsx` | Códigos IBGE, NBS, tributações, eventos — tabelas canônicas. |
 
 ## Regras Reasonix-específicas
 
@@ -54,7 +64,7 @@ arquivos não lidos.
 ### Ao adicionar dependências
 
 ```bash
-cd nfsenacional-WHMCS && composer require vendor/package
+composer require vendor/package
 ```
 
 Sempre commit o `composer.lock` atualizado. NUNCA commit `vendor/`.

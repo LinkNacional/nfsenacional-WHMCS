@@ -179,11 +179,21 @@ composer cs-check    # PHP CS Fixer (PSR-12)
 
 ---
 
-## Referências externas
+## Referências
 
-- **Schemas XSD:** `../esquemas-nfse-rtc-v1-01-*/` (namespace `http://www.sped.fazenda.gov.br/nfse`)
-- **APIs:** `../MANUAL API/v1-API-NFS-e-*.json` (especificações OpenAPI/Swagger)
-- **Anexos:** `../anexo_*.xlsx` (IBGE, NBS, tributações, eventos)
-- **Documentação consolidada:** `../DOCUMENTACAO-REFERENCIA-NFSE.md`
-- **Guia de release:** `../.github/workflows/release.yml`
+### Arquivos versionados neste repositório
+
 - **Changelog:** `CHANGELOG.md` (Keep a Changelog + SemVer)
+- **Workflow de release:** `.github/workflows/release.yml` (automático no merge para main)
+
+### Referências externas (NÃO versionadas — disponíveis apenas no ambiente local)
+
+Estes arquivos estão em `../` (pasta `nota-fiscal/`) e servem como referência
+para agentes de IA durante o desenvolvimento. **Não modifique estes arquivos.**
+
+| Arquivo | Conteúdo |
+| --- | --- |
+| `../DOCUMENTACAO-REFERENCIA-NFSE.md` | Catálogo consolidado de schemas, APIs, anexos |
+| `../esquemas-nfse-rtc-v1-01-*/` | Schemas XSD oficiais (namespace `http://www.sped.fazenda.gov.br/nfse`) |
+| `../MANUAL API/v1-API-NFS-e-*.json` | Especificações OpenAPI/Swagger dos endpoints |
+| `../anexo_*.xlsx` | Tabelas canônicas (IBGE, NBS, tributações, eventos) |
