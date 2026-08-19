@@ -6,11 +6,11 @@ use GK2\NfseNacional\Config\ModuleConfig;
 use GK2\NfseNacional\Domain\AmbienteGuard;
 use GK2\NfseNacional\Domain\Enum\EmissaoPolitica;
 use GK2\NfseNacional\Domain\Enum\NfseStatus;
-use GK2\NfseNacional\Fiscal\NacionalProvider;
 use GK2\NfseNacional\Fiscal\Payload\DpsPayloadBuilder;
+use GK2\NfseNacional\Fiscal\ProviderFactory;
+use GK2\NfseNacional\Fiscal\ProviderInterface;
 use GK2\NfseNacional\Persistence\DpsSequence;
 use GK2\NfseNacional\Persistence\NfseRepository;
-use GK2\NfseNacional\Transport\ApiEndpoints;
 
 /**
  * Orquestra o fluxo completo de emissao de NFS-e Nacional.
@@ -23,7 +23,7 @@ class EmissaoService
     private ModuleConfig $config;
     private AmbienteGuard $guard;
     private NfseRepository $repository;
-    private NacionalProvider $provider;
+    private ProviderInterface $provider;
     private DpsPayloadBuilder $payloadBuilder;
     private DpsSequence $sequence;
     private EmailService $emailService;
@@ -32,7 +32,7 @@ class EmissaoService
         ?ModuleConfig $config = null,
         ?AmbienteGuard $guard = null,
         ?NfseRepository $repository = null,
-        ?NacionalProvider $provider = null,
+        ?ProviderInterface $provider = null,
         ?DpsPayloadBuilder $payloadBuilder = null,
         ?DpsSequence $sequence = null,
         ?EmailService $emailService = null,
@@ -40,7 +40,7 @@ class EmissaoService
         $this->config = $config ?? new ModuleConfig();
         $this->guard = $guard ?? AmbienteGuard::getInstance($this->config);
         $this->repository = $repository ?? new NfseRepository($this->guard);
-        $this->provider = $provider ?? new NacionalProvider(null, $this->config, null, $this->guard);
+        $this->provider = $provider ?? (new ProviderFactory(null, $this->config, $this->guard))->create();
         $this->payloadBuilder = $payloadBuilder ?? new DpsPayloadBuilder();
         $this->sequence = $sequence ?? new DpsSequence();
         $this->emailService = $emailService ?? new EmailService();
@@ -129,11 +129,8 @@ class EmissaoService
 
                 if (!empty($chaveAcesso)) {
                     $updateData['chave_acesso'] = $chaveAcesso;
-
-                    // URLs derivadas da chave de acesso
-                    $endpoints = new ApiEndpoints();
-                    $updateData['danfse_url'] = $endpoints->obterDanfse($ambiente, $chaveAcesso);
-                    $updateData['xml_url']    = $endpoints->consultarNfseSefin($ambiente, $chaveAcesso);
+                    $updateData['danfse_url'] = $this->provider->getDanfseUrl($chaveAcesso);
+                    $updateData['xml_url']    = $this->provider->getXmlUrl($chaveAcesso);
                 }
                 if (!empty($response->data['idDps'])) {
                     $updateData['protocolo'] = $response->data['idDps'];

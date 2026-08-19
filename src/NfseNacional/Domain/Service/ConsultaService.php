@@ -5,7 +5,8 @@ namespace GK2\NfseNacional\Domain\Service;
 use GK2\NfseNacional\Config\ModuleConfig;
 use GK2\NfseNacional\Domain\AmbienteGuard;
 use GK2\NfseNacional\Domain\Enum\NfseStatus;
-use GK2\NfseNacional\Fiscal\NacionalProvider;
+use GK2\NfseNacional\Fiscal\ProviderFactory;
+use GK2\NfseNacional\Fiscal\ProviderInterface;
 use GK2\NfseNacional\Persistence\NfseRepository;
 
 /**
@@ -22,20 +23,20 @@ class ConsultaService
     private ModuleConfig $config;
     private AmbienteGuard $guard;
     private NfseRepository $repository;
-    private NacionalProvider $provider;
+    private ProviderInterface $provider;
     private EmailService $emailService;
 
     public function __construct(
         ?ModuleConfig $config = null,
         ?AmbienteGuard $guard = null,
         ?NfseRepository $repository = null,
-        ?NacionalProvider $provider = null,
+        ?ProviderInterface $provider = null,
         ?EmailService $emailService = null,
     ) {
         $this->config = $config ?? new ModuleConfig();
         $this->guard = $guard ?? AmbienteGuard::getInstance($this->config);
         $this->repository = $repository ?? new NfseRepository($this->guard);
-        $this->provider = $provider ?? new NacionalProvider(null, $this->config, null, $this->guard);
+        $this->provider = $provider ?? (new ProviderFactory(null, $this->config, $this->guard))->create();
         $this->emailService = $emailService ?? new EmailService();
     }
 

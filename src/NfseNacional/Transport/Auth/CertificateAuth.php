@@ -79,6 +79,21 @@ class CertificateAuth implements AuthStrategyInterface
     }
 
     /**
+     * Retorna os caminhos PEM temporarios [certPath, keyPath].
+     *
+     * Usado por providers que fazem chamadas cURL diretas (SOAP) e
+     * precisam configurar CURLOPT_SSLCERT / CURLOPT_SSLKEY manualmente.
+     *
+     * @return array{0: string|null, 1: string|null}
+     */
+    public function getPemPaths(): array
+    {
+        $this->extractPem();
+
+        return [$this->certPemPath, $this->keyPemPath];
+    }
+
+    /**
      * Remove arquivos temporarios (limpeza manual se necessario).
      */
     public function cleanup(): void

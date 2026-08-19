@@ -53,6 +53,16 @@ class XmlSigner
             throw new \RuntimeException('Caminho do certificado não configurado.');
         }
 
+        // Algoritmo de assinatura varia por provedor:
+        // Sefin Nacional usa SHA-256; Nota Control usa SHA-1 (manual v1.01, seção 7.3.3).
+        $usaSha1 = $this->config->getProvedor() === 'notacontrol';
+        $digestAlgo = $usaSha1
+            ? \RobRichards\XMLSecLibs\XMLSecurityDSig::SHA1
+            : \RobRichards\XMLSecLibs\XMLSecurityDSig::SHA256;
+        $signAlgo = $usaSha1
+            ? \RobRichards\XMLSecLibs\XMLSecurityKey::RSA_SHA1
+            : \RobRichards\XMLSecLibs\XMLSecurityKey::RSA_SHA256;
+
         // Criar DSig sem prefixo para evitar tags com prefixo (ex: ds:Signature)
         // Muitas APIs nacionais exigem que não haja prefixos em elementos XML.
         $dsig = new \RobRichards\XMLSecLibs\XMLSecurityDSig('');
@@ -67,7 +77,7 @@ class XmlSigner
         // para evitar que xmlseclibs gere um novo Id (pfx...) que viola o XSD.
         $dsig->addReference(
             $elementToSign,
-            \RobRichards\XMLSecLibs\XMLSecurityDSig::SHA256,
+            $digestAlgo,
             [
                 'http://www.w3.org/2000/09/xmldsig#enveloped-signature',
                 \RobRichards\XMLSecLibs\XMLSecurityDSig::C14N,
@@ -76,7 +86,7 @@ class XmlSigner
         );
 
         $key = new \RobRichards\XMLSecLibs\XMLSecurityKey(
-            \RobRichards\XMLSecLibs\XMLSecurityKey::RSA_SHA256,
+            $signAlgo,
             ['type' => 'private'],
         );
         $key->passphrase = $certPassword;

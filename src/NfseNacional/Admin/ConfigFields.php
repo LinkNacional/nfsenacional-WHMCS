@@ -173,18 +173,18 @@ HTML;
         $configarray['fields']['codigomunicipal'] = [
             'FriendlyName' => $fn('Código de Tributação Municipal (cTribMun)', false),
             'Type'         => 'text',
-            'Size'         => '8',
-            'Description'  => '<strong>Exatamente 3 dígitos</strong> conforme lista da prefeitura. '
-                . 'Código incorreto → erro <strong>E0314</strong>. '
-                . '<strong>Deixe vazio se o município não exigir.</strong>'
+            'Size'         => '12',
+            'Description'  => 'Código municipal do serviço, de <strong>1 a 10 caracteres</strong> (pode iniciar com zero). '
+                . 'O formato varia conforme o provedor: '
+                . '<strong>Sefin Nacional</strong> → 3 dígitos; '
+                . '<strong>Nota Control</strong> → string variável (ex: 10300).'
                 . $tip(
                     'Código de Tributação Municipal (cTribMun)',
                     'Código de tributação municipal do ISSQN definido pela prefeitura do município do prestador. '
-                    . 'Deve ter EXATAMENTE 3 dígitos numéricos conforme o cadastro da prefeitura (ex: 107). '
-                    . 'Atenção: cada município possui sua própria lista de códigos válidos — '
-                    . 'um código inválido gera o erro E0314. '
-                    . 'Consulte o portal de NFS-e da sua prefeitura para obter o código correto. '
-                    . 'Deixe vazio se o município não exigir este campo.',
+                    . 'O formato varia conforme o provedor fiscal: a Sefin Nacional exige 3 dígitos numéricos; '
+                    . 'a Nota Control aceita string de 1 a 10 caracteres (pode iniciar com zero). '
+                    . 'Exemplo Nota Control (Ribeirão Preto): 10300. '
+                    . 'Consulte o portal de NFS-e da sua prefeitura para obter o código correto.',
                 ),
             'Default'      => '',
         ];
@@ -390,6 +390,20 @@ HTML;
             '#2e7d32',
             'Configurações de conexão com a API SEFIN/ADN do governo federal (sefin.nfse.gov.br).',
         );
+
+        $configarray['fields']['provedor'] = [
+            'FriendlyName' => $fn('Provedor NFS-e', true),
+            'Type'         => 'dropdown',
+            'Options'      => 'sefin-Sefin Nacional (padrão),notacontrol-Nota Control / ISS.net',
+            'Description'  => 'Selecione o provedor fiscal do seu município.'
+                . $tip(
+                    'Provedor NFS-e',
+                    'Escolha "Sefin Nacional" para usar o emissor público da Receita Federal (padrão para a maioria dos municípios). '
+                    . 'Escolha "Nota Control / ISS.net" se seu município utiliza o sistema ISS.net da Nota Control (ex: Ribeirão Preto/SP). '
+                    . 'Consulte seu contador ou a prefeitura para confirmar qual provedor seu município utiliza.',
+                ),
+            'Default'      => 'sefin',
+        ];
 
         $configarray['fields']['ambiente'] = [
             'FriendlyName' => $fn('Ambiente', true),

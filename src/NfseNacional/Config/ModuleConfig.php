@@ -304,6 +304,17 @@ class ModuleConfig
         return $this->get('documento_cliente', 'taxid');
     }
 
+    public function getProvedor(): string
+    {
+        $valor = $this->get('provedor', 'sefin');
+
+        // Dropdown usa formato 'chave-Label amigavel' (ex: 'sefin-Sefin Nacional (padrão)').
+        // Extrai apenas a chave antes do primeiro hífen.
+        $chave = explode('-', $valor, 2)[0];
+
+        return $chave !== '' ? $chave : 'sefin';
+    }
+
     // ─── Setup (ativacao) ──────────────────────────────────────────
 
     /**
@@ -313,6 +324,7 @@ class ModuleConfig
     {
         $defaults = [
             '_token_secret' => bin2hex(random_bytes(32)),
+            'provedor' => 'sefin',
             'ambiente' => 'homologacao',
             'serie_dps' => '1',
             'documento_cliente' => 'taxid',

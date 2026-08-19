@@ -28,10 +28,10 @@ class NacionalProvider implements ProviderInterface
     private Ambiente $ambiente;
 
     public function __construct(
-        ?HttpClient $httpClient = null,
         ?ModuleConfig $config = null,
-        ?ApiEndpoints $endpoints = null,
         ?AmbienteGuard $guard = null,
+        ?HttpClient $httpClient = null,
+        ?ApiEndpoints $endpoints = null,
     ) {
         $this->config = $config ?? new ModuleConfig();
         $this->guard = $guard ?? AmbienteGuard::getInstance($this->config);
@@ -151,6 +151,22 @@ class NacionalProvider implements ProviderInterface
         $this->log('ObterXml', ['chave_acesso' => $chaveAcesso], $response);
 
         return $response;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getDanfseUrl(string $chaveAcesso): string
+    {
+        return $this->endpoints->obterDanfse($this->ambiente, $chaveAcesso);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getXmlUrl(string $chaveAcesso): string
+    {
+        return $this->endpoints->consultarNfseSefin($this->ambiente, $chaveAcesso);
     }
 
     /**

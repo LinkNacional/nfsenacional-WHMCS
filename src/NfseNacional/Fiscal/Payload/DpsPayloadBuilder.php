@@ -22,7 +22,6 @@ use GK2\NfseNacional\Fiscal\Mapper\TributoMapper;
 class DpsPayloadBuilder
 {
     private const NAMESPACE = 'http://www.sped.fazenda.gov.br/nfse';
-    private const VERSAO = '1.01';
 
     private ModuleConfig $config;
     private PrestadorMapper $prestadorMapper;
@@ -90,7 +89,7 @@ class DpsPayloadBuilder
 
         // <DPS versao="1.01" xmlns="...">
         $dps = $dom->createElementNS(self::NAMESPACE, 'DPS');
-        $dps->setAttribute('versao', self::VERSAO);
+        $dps->setAttribute('versao', '1.01');
         $dom->appendChild($dps);
 
         // <infDPS> (Id será calculado e aplicado mais abaixo, após inserção dos campos)
@@ -100,7 +99,7 @@ class DpsPayloadBuilder
         // Campos obrigatorios da TCInfDPS
         $this->addElement($dom, $infDPS, 'tpAmb', $this->config->getAmbiente()->isProducao() ? '1' : '2');
         // dhEmi: 30s de buffer para evitar E0008 (clock skew servidor vs Sefin)
-$this->addElement($dom, $infDPS, 'dhEmi', date('Y-m-d\TH:i:sP', time() - 30));
+        $this->addElement($dom, $infDPS, 'dhEmi', date('Y-m-d\TH:i:sP', time() - 30));
         $this->addElement($dom, $infDPS, 'verAplic', $this->config->getVerAplic());
         // Série deve ser numérica conforme XSD (usar serieId gerada: 5 dígitos numéricos)
         $this->addElement($dom, $infDPS, 'serie', $serieId);
@@ -123,7 +122,7 @@ $this->addElement($dom, $infDPS, 'dhEmi', date('Y-m-d\TH:i:sP', time() - 30));
         // <valores> — TCInfoValores
         $this->buildValores($dom, $infDPS, $servico, $tributos);
 
-        // <IBSCBS> — IBS/CBS Reforma Tributária (obrigatório a partir de 2026 na v1.01)
+        // <IBSCBS> — IBS/CBS Reforma Tributária (obrigatório na v1.01)
         $this->buildIBSCBS($dom, $infDPS);
 
         // Agora que todos os campos obrigatórios foram adicionados, recalcular e aplicar o Id
@@ -275,18 +274,11 @@ $this->addElement($dom, $infDPS, 'dhEmi', date('Y-m-d\TH:i:sP', time() - 30));
         $cTribNac = str_pad($cTribNac, 6, '0', STR_PAD_LEFT);
         $this->addElement($dom, $cServ, 'cTribNac', $cTribNac);
 
-        // cTribMun: exatamente 3 digitos numericos (TCCodTribMun = [0-9]{3}) — opcional
+        // cTribMun: string de 1 a 10 caracteres (pode iniciar com zero — não é inteiro).
+        // O formato varia por provedor: Sefin Nacional usa 3 dígitos; Nota Control usa string variável.
         $cTribMunRaw = preg_replace('/\D/', '', $serv['codigoMunicipal'] ?? '');
-        if ($cTribMunRaw !== '') {
-            if (strlen($cTribMunRaw) === 3) {
-                $this->addElement($dom, $cServ, 'cTribMun', $cTribMunRaw);
-            } else {
-                // Codigo informado mas com comprimento invalido — omitir e logar para evitar E0314
-                logActivity(
-                    '[NFS-e Nacional] cTribMun ignorado: "' . $cTribMunRaw . '" nao tem exatamente 3 digitos. '
-                    . 'Verifique o Codigo de Tributacao Municipal nas configuracoes do addon.',
-                );
-            }
+        if ($cTribMunRaw !== '' && strlen($cTribMunRaw) <= 10) {
+            $this->addElement($dom, $cServ, 'cTribMun', $cTribMunRaw);
         }
 
         $this->addElement($dom, $cServ, 'xDescServ', $serv['discriminacao']);

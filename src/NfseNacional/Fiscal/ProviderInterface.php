@@ -61,4 +61,24 @@ interface ProviderInterface
      * @return ApiResponse Resposta com URL ou conteudo do XML
      */
     public function obterXml(string $chaveAcesso): ApiResponse;
+
+    /**
+     * Retorna a URL publica de acesso ao DANFS-e (PDF).
+     *
+     * Usado para persistir a URL no banco apos emissao, sem chamada HTTP.
+     *
+     * @param string $chaveAcesso Chave de acesso da NFS-e
+     * @return string URL completa do DANFS-e
+     */
+    public function getDanfseUrl(string $chaveAcesso): string;
+
+    /**
+     * Retorna a URL publica de acesso ao XML autorizado.
+     *
+     * Usado para persistir a URL no banco apos emissao, sem chamada HTTP.
+     *
+     * @param string $chaveAcesso Chave de acesso da NFS-e
+     * @return string URL completa do XML
+     */
+    public function getXmlUrl(string $chaveAcesso): string;
 }
